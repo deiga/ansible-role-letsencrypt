@@ -1,2 +1,58 @@
 ---
-# tasks file for deiga.letsencrypt
+
+- name: Ensure required packages are installed
+  package:
+    name: '{{ item }}'
+    state: present
+  with_items:
+    - openssl
+
+- name: Ensure required folders exist
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - /etc/pki/cert
+    - /etc/pki/cert/private
+
+- name: Generate private account key
+  command: openssl genrsa -out {{ letsencrypt_account_key_path }}
+  args:
+    creates: '{{ letsencrypt_account_key_path }}'
+
+- name: Generate private domain key
+  command: openssl genrsa -out {{ letsencrypt_domain_key_path }}
+  args:
+    creates: '{{ letsencrypt_domain_key_path }}'
+
+- name: Generate certificate signing request (CSR) for your domain(s)
+  shell: >
+    openssl req \
+      -new \
+      -sha256 \
+      -key {{ letsencrypt_domain_key_path }} \
+      -subj "/" \
+      -reqexts SAN \
+      -config <(cat /etc/ssl/openssl.cnf <(printf "[SAN]\nsubjectAltName=DNS:{{ letsencrypt_domains | join(",DNS:") }}")) \
+      -out {{ letsencrypt_domain_csr_path }}
+  args:
+    executable: '/bin/bash'
+    creates: '{{ letsencrypt_domain_csr_path }}'
+
+
+- letsencrypt:
+    account_key: '{{ letsencrypt_account_key_path }}'
+    csr: '{{ letsencrypt_domain_csr_path }}'
+    dest: '{{ letsencrypt_valid_certificate_path }}'
+  register: letsencrypt_challenge
+
+- copy:
+    dest: /var/www/html/{{ letsencrypt_challenge['challenge_data'][{{ letsencrypt_domains[0] }}]['http-01']['resource'] }}
+    content: "{{ letsencrypt_challenge['challenge_data'][{{ letsencrypt_domains[0] }}]['http-01']['resource_value'] }}"
+    when: letsencrypt_challenge|changed
+
+- letsencrypt:
+    account_key: '{{ letsencrypt_account_key_path }}'
+    csr: '{{ letsencrypt_domain_csr_path }}'
+    dest: '{{ letsencrypt_valid_certificate_path }}'
+    data: '{{ letsencrypt_challenge }}'
