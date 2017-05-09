@@ -9,6 +9,7 @@ letsencrypt_domains: []
 
 letsencrypt_cert_base_path: /etc/pki/cert
 letsencrypt_certificate_path: /etc/nginx/ssl
+letsencrypt_challenge_public_path: /var/www/html/
 
 # Generated private keys and certificates.
 letsencrypt_account_key_path: '{{ letsencrypt_cert_base_path }}/private/account.key'

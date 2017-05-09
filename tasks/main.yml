@@ -46,10 +46,15 @@
     dest: '{{ letsencrypt_valid_certificate_path }}'
   register: letsencrypt_challenge
 
+- name: Ensure LE challenge public path exists
+  file:
+    path: "{{ letsencrypt_challenge_public_path }}{{ letsencrypt_challenge['challenge_data'][letsencrypt_domains[0]]['http-01']['resource'] | dirname}}"
+    state: directory
+
 - copy:
-    dest: /var/www/html/{{ letsencrypt_challenge['challenge_data'][{{ letsencrypt_domains[0] }}]['http-01']['resource'] }}
-    content: "{{ letsencrypt_challenge['challenge_data'][{{ letsencrypt_domains[0] }}]['http-01']['resource_value'] }}"
-    when: letsencrypt_challenge|changed
+    content: "{{ letsencrypt_challenge['challenge_data'][letsencrypt_domains[0]]['http-01']['resource_value'] }}"
+    dest: "{{ letsencrypt_challenge_public_path }}{{ letsencrypt_challenge['challenge_data'][letsencrypt_domains[0]]['http-01']['resource'] }}"
+  when: letsencrypt_challenge|changed
 
 - letsencrypt:
     account_key: '{{ letsencrypt_account_key_path }}'
