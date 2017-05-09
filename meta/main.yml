@@ -4,7 +4,7 @@ dependencies:
 
 galaxy_info:
   author: deiga
-  description: your description
+  description: Role to get Let's Encrypt certificates
 
   license: license (BSD, MIT)
 
